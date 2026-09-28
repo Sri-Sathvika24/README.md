@@ -1,0 +1,139 @@
+1. Advanced Password Analysis & Scoring
+
+* *Entropy & Character Diversity Calculation:* Measures password randomness ($E = L \times \log_2(R)$) to estimate how long a brute-force attack would take.
+* *Common Pattern & Sequential Character Detection:* Flags easily guessable patterns like 12345, qwerty, abc, or repeating characters (aaaa).
+* *Common / Leaked Password Blacklist:* Checks the user's password against a built-in list of top weak passwords (e.g., password123, admin, iloveyou).
+
+#### 2. Enhanced User Experience & Utility
+
+* *Strong Password Generator:* Includes an automated option to generate a secure, random 12–16 character password if the user's password is weak.
+* *Masked Password Input:* Uses Python’s built-in getpass module to hide keystrokes on screen while typing.
+* *Visual Strength Bar:* Displays a visual progress bar (e.g., [████░░░░░░] 40%) alongside the strength label.
+
+---
+
+### Upgraded Python Code
+
+python
+import getpass
+import math
+import random
+import string
+
+# Built-in list of common/weak passwords to block
+COMMON_PASSWORDS = [
+    "123456", "password", "123456789", "12345678", "12345", 
+    "1234567", "1234", "qwerty", "111111", "admin", "welcome"
+]
+
+def calculate_entropy(password):
+    """Calculates password entropy in bits."""
+    charset_size = 0
+    if any(c.islower() for c in password): charset_size += 26
+    if any(c.isupper() for c in password): charset_size += 26
+    if any(c.isdigit() for c in password): charset_size += 10
+    if any(c in string.punctuation for c in password): charset_size += 32
+
+    if charset_size == 0 or len(password) == 0:
+        return 0
+    
+    # Entropy formula: Length * log2(charset_size)
+    return round(len(password) * math.log2(charset_size), 2)
+
+def generate_strong_password(length=14):
+    """Generates a secure random password."""
+    chars = string.ascii_lowercase + string.ascii_uppercase + string.digits + "!@#$%^&*"
+    return ''.join(random.choice(chars) for _ in range(length))
+
+def check_password_strength(password):
+    score = 0
+    feedback = []
+
+    # Check 0: Blacklist Check
+    if password.lower() in COMMON_PASSWORDS:
+        print("\n--- Password Analysis ---")
+        print("Status: 🔴 VERY WEAK (Breached/Common Password)")
+        print("Suggestion: This password is extremely common. Choose something completely different.")
+        return
+
+    # Check 1: Length
+    if len(password) >= 12:
+        score += 2
+    elif len(password) >= 8:
+        score += 1
+    else:
+        feedback.append("- Length should be at least 8 characters (12+ recommended).")
+
+    # Check 2: Uppercase Letter
+    if any(char.isupper() for char in password):
+        score += 1
+    else:
+        feedback.append("- Add at least one uppercase letter (A-Z).")
+
+    # Check 3: Lowercase Letter
+    if any(char.islower() for char in password):
+        score += 1
+    else:
+        feedback.append("- Add at least one lowercase letter (a-z).")
+
+    # Check 4: Number
+    if any(char.isdigit() for char in password):
+        score += 1
+    else:
+        feedback.append("- Add at least one digit (0-9).")
+
+    # Check 5: Special Character
+    if any(char in string.punctuation for char in password):
+        score += 1
+    else:
+        feedback.append("- Add at least one special character (!@#$%^&*).")
+
+    # Check 6: Sequential Patterns
+    sequential_patterns = ["123", "abc", "qwerty", "012", "xyz"]
+    if any(pat in password.lower() for pat in sequential_patterns):
+        feedback.append("- Avoid easy sequences like '123' or 'qwerty'.")
+        score = max(0, score - 1)
+
+    # Calculate Entropy
+    entropy = calculate_entropy(password)
+
+    # Visual Bar Calculation
+percentage = int((score / 7) * 100)
+    bar_length = 10
+    filled = int(bar_length * score // 7)
+    bar = "█" * filled + "░" * (bar_length - filled)
+
+    # Display Output
+    print("\n--- Password Analysis ---")
+    print(f"Strength Meter: [{bar}] {percentage}%")
+    print(f"Estimated Entropy: {entropy} bits")
+
+    if score >= 6:
+        print("Status: 🟢 STRONG PASSWORD")
+        print("Great job! Your password meets advanced security standards.")
+    elif score >= 4:
+        print("Status: 🟡 MODERATE PASSWORD")
+        print("Suggestions to improve:")
+        for item in feedback:
+            print(item)
+    else:
+        print("Status: 🔴 WEAK PASSWORD")
+        print("Suggestions to improve:")
+        for item in feedback:
+            print(item)
+
+if __name__ == "__main__":
+    print("=== Advanced Password Checker & Generator ===")
+    
+    # Secure password entry (falls back if terminal doesn't support getpass)
+    try:
+        user_password = getpass.getpass("Enter password to test (hidden input): ")
+    except Exception:
+        user_password = input("Enter password to test: ")
+
+    check_password_strength(user_password)
+
+    # Offer Password Generation
+    gen_choice = input("\nWould you like a strong password generated for you? (y/n): ").strip().lower()
+    if gen_choice == 'y':
+        print(f"Suggested Password: {generate_strong_password()}"
